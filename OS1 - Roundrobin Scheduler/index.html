@@ -1,433 +1,91 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SDG Round Robin CPU Scheduling Simulator - Interactive educational operating systems assignment comparing time quanta and context-switch overhead.">
-  <title>SDG Round Robin Scheduling Simulator | OS Assignment 1</title>
+  <title>SDG Round Robin Scheduling Simulator</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Header -->
+
+  <!-- Top Header with Page Title and Assignment Details -->
   <header class="app-header">
-    <div class="header-container">
-      <div class="header-brand">
-        <div class="brand-icon" aria-hidden="true">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
-            <circle cx="8" cy="10" r="1.5" fill="currentColor"></circle>
-            <circle cx="12" cy="10" r="1.5" fill="currentColor"></circle>
-            <circle cx="16" cy="10" r="1.5" fill="currentColor"></circle>
-          </svg>
-        </div>
-        <div>
-          <h1 class="header-title">SDG Round Robin Scheduling Simulator</h1>
-          <p class="header-subtitle">Operating Systems, Assignment 1 &bull; Agnel T Vincent | MCA | Semester 1</p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <button id="theme-toggle-btn" class="btn btn-secondary btn-icon" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
-          <span class="theme-icon light-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-          </span>
-          <span class="theme-icon dark-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-          </span>
-          <span class="theme-label">Theme</span>
-        </button>
-      </div>
-    </div>
+    <h1 class="page-title">SDG Round Robin Scheduling Simulator</h1>
+    <p class="page-subtitle">Agnel T Vincent | MCA | Semester 1 | Operating Systems, Assignment 1</p>
   </header>
 
-  <main class="main-content">
-    <!-- Tab Navigation -->
-    <nav class="tabs-nav" aria-label="Scenario Tabs">
-      <div class="tabs-container">
-        <button type="button" class="tab-button active" id="tab-btn-act1" data-tab="act1" role="tab" aria-selected="true" aria-controls="tab-content">
-          <span class="tab-badge">Activity 1</span>
-          <span class="tab-title">Smart Municipal Center (Zero Overhead)</span>
-        </button>
-        <button type="button" class="tab-button" id="tab-btn-act2" data-tab="act2" role="tab" aria-selected="false" aria-controls="tab-content">
-          <span class="tab-badge">Activity 2</span>
-          <span class="tab-title">Climate Emergency Center (1 ms Overhead)</span>
-        </button>
-        <button type="button" class="tab-button" id="tab-btn-custom" data-tab="custom" role="tab" aria-selected="false" aria-controls="tab-content">
-          <span class="tab-badge">Custom</span>
-          <span class="tab-title">Custom Workload Sandbox</span>
-        </button>
+  <!-- Two-card Layout: Input on Left, Output on Right -->
+  <main class="main-layout">
+
+    <!-- Left Card: Input Parameters -->
+    <aside class="card input-card">
+      <h2 class="card-heading">Input</h2>
+
+      <!-- Input Form Fields -->
+      <form id="scheduler-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="arrival-input">Arrival Times</label>
+          <input type="text" id="arrival-input" value="0 1 2 3" placeholder="e.g. 0 1 2 3">
+        </div>
+
+        <div class="form-group">
+          <label for="burst-input">Burst Times</label>
+          <input type="text" id="burst-input" value="5 3 4 2" placeholder="e.g. 5 3 4 2">
+        </div>
+
+        <div class="form-group">
+          <label for="quantum-input">Time Quantum</label>
+          <input type="number" id="quantum-input" value="2" min="1" placeholder="e.g. 2">
+        </div>
+
+        <div class="form-group">
+          <label for="overhead-input">Context Switch Overhead (ms)</label>
+          <input type="number" id="overhead-input" value="0" min="0" placeholder="0 means no overhead">
+        </div>
+
+        <div class="form-group">
+          <label for="compare-quantum-input">Compare with Time Quantum (optional)</label>
+          <input type="number" id="compare-quantum-input" value="3" min="1" placeholder="e.g. 3">
+        </div>
+
+        <!-- Scenario Information Callout (shown when a preset is loaded) -->
+        <div id="scenario-note" class="scenario-note" style="display: none;"></div>
+
+        <!-- Primary Action Button -->
+        <button type="button" id="solve-btn" class="btn btn-primary">Solve</button>
+
+        <!-- Preset Buttons -->
+        <div class="preset-group">
+          <button type="button" id="btn-activity-1" class="btn btn-outline">Load Activity 1</button>
+          <button type="button" id="btn-activity-2" class="btn btn-outline">Load Activity 2</button>
+        </div>
+
+        <!-- Error Alert Message -->
+        <div id="error-message" class="error-message" role="alert" style="display: none;"></div>
+      </form>
+    </aside>
+
+    <!-- Right Card: Output Results -->
+    <section class="card output-card">
+      <div class="output-header">
+        <h2 class="card-heading">Output</h2>
+        <span class="badge-rr">RR</span>
       </div>
-    </nav>
 
-    <!-- Active Scenario Banner -->
-    <section class="scenario-banner" id="scenario-banner">
-      <div class="scenario-meta">
-        <h2 class="scenario-title" id="scenario-title">Smart Municipal Control Centre</h2>
-        <p class="scenario-desc" id="scenario-desc">Simulating priority scheduling across municipal urban sustainability tasks without context-switch latency.</p>
-      </div>
-      <div class="sdg-badges" id="sdg-badges" aria-label="UN Sustainable Development Goals">
-        <!-- Injected via JavaScript based on active tab -->
-      </div>
-    </section>
-
-    <!-- Configuration & Input Panel Card -->
-    <section class="card config-card" aria-labelledby="config-heading">
-      <div class="card-header">
-        <div class="card-header-title">
-          <svg class="card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-          <h2 id="config-heading">Workload &amp; Algorithm Configuration</h2>
-        </div>
-        <div class="header-tag">Live Editable</div>
-      </div>
-
-      <div class="card-body">
-        <!-- Process Table -->
-        <div class="table-responsive">
-          <table class="table input-table" id="process-input-table">
-            <thead>
-              <tr>
-                <th scope="col" style="width: 140px;">Process ID</th>
-                <th scope="col">Task Description</th>
-                <th scope="col" style="width: 150px;">Arrival (ms)</th>
-                <th scope="col" style="width: 150px;">Burst (ms)</th>
-                <th scope="col" style="width: 80px;" class="text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody id="process-table-body">
-              <!-- Dynamically populated rows -->
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-controls">
-          <button type="button" class="btn btn-secondary btn-sm" id="add-process-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Add Process
-          </button>
-          <span class="process-counter" id="process-counter">4 / 12 processes</span>
-        </div>
-
-        <!-- Simulation Parameters Form -->
-        <div class="params-grid">
-          <div class="form-group">
-            <label for="quantum-a-input" class="form-label">
-              <span>Quantum A (<var>q<sub>A</sub></var>)</span>
-              <span class="param-unit">ms</span>
-            </label>
-            <input type="number" id="quantum-a-input" class="form-control" min="1" max="100" step="1" required>
-            <small class="form-hint">Time slice for configuration A (min 1 ms)</small>
-          </div>
-
-          <div class="form-group">
-            <label for="quantum-b-input" class="form-label">
-              <span>Quantum B (<var>q<sub>B</sub></var>)</span>
-              <span class="param-unit">ms</span>
-            </label>
-            <input type="number" id="quantum-b-input" class="form-control" min="1" max="100" step="1" required>
-            <small class="form-hint">Time slice for configuration B (min 1 ms)</small>
-          </div>
-
-          <div class="form-group">
-            <label for="overhead-input" class="form-label">
-              <span>Context Switch Overhead (<var>CS</var>)</span>
-              <span class="param-unit">ms</span>
-            </label>
-            <input type="number" id="overhead-input" class="form-control" min="0" max="20" step="1" required>
-            <small class="form-hint">Overhead delay added on process switch (min 0 ms)</small>
-          </div>
-        </div>
-
-        <!-- Validation message box -->
-        <div class="validation-box hidden" id="validation-box" role="alert" aria-live="polite">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <div id="validation-message-text">Please correct the highlighted inputs.</div>
-        </div>
-
-        <!-- Action Bar -->
-        <div class="action-bar">
-          <div class="action-buttons">
-            <button type="button" class="btn btn-primary" id="run-simulation-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-              Run Simulation
-            </button>
-            <button type="button" class="btn btn-secondary" id="reset-preset-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                <path d="M3 3v5h5"></path>
-              </svg>
-              Reset to Preset
-            </button>
-          </div>
-
-          <div class="auto-run-toggle">
-            <label class="switch-label" for="auto-run-switch">
-              <input type="checkbox" id="auto-run-switch" checked>
-              <span class="switch-slider"></span>
-              <span class="switch-text">Auto-run on edit</span>
-            </label>
-          </div>
-        </div>
+      <!-- Container where results (Gantt, Tables, Summaries) are rendered -->
+      <div id="output-content" class="output-content">
+        <!-- Rendered dynamically by script.js -->
       </div>
     </section>
 
-    <!-- Stale Results Warning Banner (shown when inputs are invalid) -->
-    <div class="stale-banner hidden" id="stale-banner">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-        <line x1="12" y1="9" x2="12" y2="13"></line>
-        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-      </svg>
-      <span>Input errors detected. Results below are paused until valid inputs are provided.</span>
-    </div>
-
-    <!-- Results Section -->
-    <div class="results-wrapper" id="results-wrapper">
-      
-      <!-- Unified Legend -->
-      <section class="card legend-card" aria-label="Process and State Legend">
-        <div class="legend-container" id="unified-legend">
-          <!-- Dynamically populated process colors and CS / Idle tags -->
-        </div>
-      </section>
-
-      <!-- Side-by-Side Simulation Views -->
-      <div class="simulation-comparison-grid">
-        <!-- Quantum A Container -->
-        <section class="card result-card" id="card-quantum-a" aria-labelledby="heading-qa">
-          <div class="card-header card-header-qa">
-            <div class="card-header-title">
-              <span class="quantum-badge qa-badge">Quantum A</span>
-              <h3 id="heading-qa" class="quantum-title"><var>q</var> = <span id="label-val-qa">2</span> ms</h3>
-            </div>
-          </div>
-          <div class="card-body">
-            <!-- Gantt Chart -->
-            <div class="gantt-section">
-              <h4 class="section-subtitle">Execution Gantt Chart</h4>
-              <div class="gantt-scroll-container">
-                <div class="gantt-track" id="gantt-track-qa">
-                  <!-- Injected blocks -->
-                </div>
-                <div class="gantt-axis" id="gantt-axis-qa">
-                  <!-- Injected ticks -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Summary Cards -->
-            <div class="summary-section">
-              <h4 class="section-subtitle">Performance Summary</h4>
-              <div class="summary-grid" id="summary-grid-qa">
-                <!-- Injected metric cards -->
-              </div>
-            </div>
-
-            <!-- Per-Process Results Table -->
-            <div class="process-results-section">
-              <h4 class="section-subtitle">Process Execution Breakdown</h4>
-              <div class="table-responsive">
-                <table class="table results-table" id="results-table-qa">
-                  <thead>
-                    <tr>
-                      <th scope="col">ID</th>
-                      <th scope="col">Task</th>
-                      <th scope="col" class="text-right">Arrival</th>
-                      <th scope="col" class="text-right">Burst</th>
-                      <th scope="col" class="text-right">CT</th>
-                      <th scope="col" class="text-right">TAT</th>
-                      <th scope="col" class="text-right">WT</th>
-                      <th scope="col" class="text-right">RT</th>
-                    </tr>
-                  </thead>
-                  <tbody id="results-tbody-qa">
-                    <!-- Injected rows -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Quantum B Container -->
-        <section class="card result-card" id="card-quantum-b" aria-labelledby="heading-qb">
-          <div class="card-header card-header-qb">
-            <div class="card-header-title">
-              <span class="quantum-badge qb-badge">Quantum B</span>
-              <h3 id="heading-qb" class="quantum-title"><var>q</var> = <span id="label-val-qb">3</span> ms</h3>
-            </div>
-          </div>
-          <div class="card-body">
-            <!-- Gantt Chart -->
-            <div class="gantt-section">
-              <h4 class="section-subtitle">Execution Gantt Chart</h4>
-              <div class="gantt-scroll-container">
-                <div class="gantt-track" id="gantt-track-qb">
-                  <!-- Injected blocks -->
-                </div>
-                <div class="gantt-axis" id="gantt-axis-qb">
-                  <!-- Injected ticks -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Summary Cards -->
-            <div class="summary-section">
-              <h4 class="section-subtitle">Performance Summary</h4>
-              <div class="summary-grid" id="summary-grid-qb">
-                <!-- Injected metric cards -->
-              </div>
-            </div>
-
-            <!-- Per-Process Results Table -->
-            <div class="process-results-section">
-              <h4 class="section-subtitle">Process Execution Breakdown</h4>
-              <div class="table-responsive">
-                <table class="table results-table" id="results-table-qb">
-                  <thead>
-                    <tr>
-                      <th scope="col">ID</th>
-                      <th scope="col">Task</th>
-                      <th scope="col" class="text-right">Arrival</th>
-                      <th scope="col" class="text-right">Burst</th>
-                      <th scope="col" class="text-right">CT</th>
-                      <th scope="col" class="text-right">TAT</th>
-                      <th scope="col" class="text-right">WT</th>
-                      <th scope="col" class="text-right">RT</th>
-                    </tr>
-                  </thead>
-                  <tbody id="results-tbody-qb">
-                    <!-- Injected rows -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Comparative Analysis Table Card -->
-      <section class="card comparison-card" aria-labelledby="comparison-heading">
-        <div class="card-header">
-          <div class="card-header-title">
-            <svg class="card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
-            <h2 id="comparison-heading">Side-by-Side Metric Comparison</h2>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table comparison-table" id="comparison-matrix-table">
-              <thead>
-                <tr>
-                  <th scope="col">Performance Metric</th>
-                  <th scope="col" class="text-center" id="col-header-qa">Quantum A</th>
-                  <th scope="col" class="text-center" id="col-header-qb">Quantum B</th>
-                  <th scope="col" class="text-center" style="width: 180px;">Advantage</th>
-                </tr>
-              </thead>
-              <tbody id="comparison-table-body">
-                <!-- Dynamically populated rows -->
-              </tbody>
-            </table>
-          </div>
-          <div id="identical-quanta-notice" class="notice-banner hidden">
-            <span>Quanta A and B are identical. Both configurations generate equivalent scheduling outcomes.</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Recommendation & Trade-Off Engine Card -->
-      <section class="card recommendation-card" aria-labelledby="rec-heading">
-        <div class="card-header">
-          <div class="card-header-title">
-            <svg class="card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polygon points="12 6 12 12 16 14"></polygon>
-            </svg>
-            <h2 id="rec-heading">Scheduler Architectural Recommendation &amp; Trade-off Analysis</h2>
-          </div>
-          <span class="recommendation-badge" id="rec-winner-badge">Determining...</span>
-        </div>
-        <div class="card-body">
-          <div class="recommendation-content" id="recommendation-text-container">
-            <!-- Injected recommendation analysis -->
-          </div>
-        </div>
-      </section>
-
-    </div>
   </main>
 
-  <!-- Footer -->
+  <!-- Muted Footer showing Self-Test Result -->
   <footer class="app-footer">
-    <div class="footer-container">
-      <div class="footer-info">
-        <p><strong>Agnel T Vincent</strong> | MCA | Semester 1 &bull; Operating Systems Coursework</p>
-        <p class="footer-subtext">Algorithmic Round Robin CPU Simulation Engine with Dynamic Context-Switch Cost Modeling</p>
-      </div>
-      <div class="footer-actions">
-        <button type="button" class="btn btn-secondary btn-sm" id="open-self-test-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-          Run Self-Test
-        </button>
-      </div>
-    </div>
+    <p id="self-test-line" class="self-test-text">Running self-test...</p>
   </footer>
 
-  <!-- Self-Test Modal Dialog -->
-  <dialog class="modal-dialog" id="self-test-modal" aria-labelledby="modal-test-title">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-header-title">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-          <h2 id="modal-test-title">Algorithmic Engine Self-Test Diagnostics</h2>
-        </div>
-        <button type="button" class="btn-close" id="close-modal-btn" aria-label="Close dialog">&times;</button>
-      </div>
-      <div class="modal-body" id="modal-test-body">
-        <!-- Dynamically injected test results -->
-      </div>
-      <div class="modal-footer">
-        <span class="modal-status-text" id="modal-status-summary">Checking test suites...</span>
-        <button type="button" class="btn btn-secondary" id="close-modal-bottom-btn">Close</button>
-      </div>
-    </div>
-  </dialog>
-
+  <!-- Scheduling Engine and UI Logic -->
   <script src="script.js"></script>
 </body>
 </html>
