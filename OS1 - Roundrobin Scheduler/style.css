@@ -75,7 +75,7 @@ body {
 .main-layout {
   display: flex;
   gap: 24px;
-  max-width: 1280px;
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   align-items: flex-start;
@@ -99,8 +99,179 @@ body {
 
 /* Left Card: Input */
 .input-card {
-  flex: 0 0 320px;
-  width: 320px;
+  flex: 0 0 460px;
+  width: 460px;
+}
+
+/* Process Configuration Table (Row-wise AT & BT) */
+.process-table-section {
+  margin-top: 18px;
+}
+
+.table-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.form-section-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.process-counter {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  background: #f3f4f6;
+  border: 1px solid var(--border-light);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.process-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.input-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.input-table th {
+  padding: 8px 6px;
+  background-color: #f9fafb;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+  text-align: left;
+}
+
+.input-table th.text-right {
+  text-align: right;
+}
+
+.input-table th.text-center {
+  text-align: center;
+}
+
+.input-table td {
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.input-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.input-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.cell-input {
+  font-family: inherit;
+  font-size: 0.86rem;
+  padding: 6px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: var(--text-main);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cell-input:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.cell-input.input-error {
+  border-color: var(--error-text) !important;
+  background-color: #fef2f2 !important;
+}
+
+.cell-input-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  text-align: center;
+}
+
+.cell-input-task {
+  font-size: 0.82rem;
+}
+
+.cell-input-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-align: right;
+  padding-right: 6px;
+}
+
+.btn-delete-row {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-row:hover:not(:disabled) {
+  color: #dc2626;
+  background-color: #fee2e2;
+}
+
+.btn-delete-row:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.table-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.btn-add-process {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  background-color: #ffffff;
+  border: 1px dashed var(--border-input);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add-process:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+.btn-add-process:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .form-group {
@@ -384,6 +555,14 @@ body {
 
 .results-table tbody tr:hover {
   background-color: #fcfcfc;
+}
+
+.job-task-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 3px;
+  line-height: 1.25;
 }
 
 /* Table Average Row */

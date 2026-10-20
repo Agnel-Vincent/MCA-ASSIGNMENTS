@@ -23,14 +23,39 @@
 
       <!-- Input Form Fields -->
       <form id="scheduler-form" onsubmit="return false;">
-        <div class="form-group">
-          <label for="arrival-input">Arrival Times</label>
-          <input type="text" id="arrival-input" value="0 1 2 3" placeholder="e.g. 0 1 2 3">
-        </div>
+        <!-- Process Configuration Table (Row-wise AT & BT) -->
+        <div class="process-table-section">
+          <div class="table-header-row">
+            <label class="form-section-label">Processes (Arrival &amp; Burst Times)</label>
+            <span id="process-counter" class="process-counter">4 processes</span>
+          </div>
 
-        <div class="form-group">
-          <label for="burst-input">Burst Times</label>
-          <input type="text" id="burst-input" value="5 3 4 2" placeholder="e.g. 5 3 4 2">
+          <div class="process-table-container">
+            <table class="table input-table" id="process-input-table">
+              <thead>
+                <tr>
+                  <th scope="col" style="width: 52px;">PID</th>
+                  <th scope="col">Task Description</th>
+                  <th scope="col" style="width: 72px;" class="text-right">AT (ms)</th>
+                  <th scope="col" style="width: 72px;" class="text-right">BT (ms)</th>
+                  <th scope="col" style="width: 38px;" class="text-center"></th>
+                </tr>
+              </thead>
+              <tbody id="process-table-body">
+                <!-- Dynamically populated process rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-actions">
+            <button type="button" id="add-process-btn" class="btn-add-process">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Process
+            </button>
+          </div>
         </div>
 
         <div class="form-group">

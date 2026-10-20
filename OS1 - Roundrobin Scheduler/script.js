@@ -16,11 +16,13 @@
  * @param {number} overhead - Context switch overhead in ms (integer >= 0)
  * @returns {object} Object containing timeline, jobs array, and summary statistics
  */
-function roundRobin(arrivals, bursts, quantum, overhead) {
+function roundRobin(arrivals, bursts, quantum, overhead, names, tasks) {
   const n = arrivals.length;
   const procs = [];
   for (let i = 0; i < n; i++) {
-    procs.push({ name: 'P' + (i + 1), arrival: arrivals[i], burst: bursts[i], index: i });
+    const pName = (names && names[i]) ? names[i] : 'P' + (i + 1);
+    const pTask = (tasks && tasks[i]) ? tasks[i] : '';
+    procs.push({ name: pName, task: pTask, arrival: arrivals[i], burst: bursts[i], index: i });
   }
 
   // Sort a copy by arrival ascending; preserve input order on ties
@@ -108,7 +110,7 @@ function roundRobin(arrivals, bursts, quantum, overhead) {
     const tat = comp - p.arrival;
     const wt = tat - p.burst;
     const rt = firstStart[p.name] - p.arrival;
-    return { name: p.name, arrival: p.arrival, burst: p.burst, completion: comp, turnaround: tat, waiting: wt, response: rt };
+    return { name: p.name, task: p.task, arrival: p.arrival, burst: p.burst, completion: comp, turnaround: tat, waiting: wt, response: rt };
   });
 
   // Calculate summary metrics
@@ -289,36 +291,168 @@ function runSelfTest() {
 }
 
 // =============================================================================
-// 3. INPUT PARSING AND VALIDATION
+// 3. PROCESS TABLE & INPUT VALIDATION
 // =============================================================================
 
 /**
- * Parses space or comma separated numbers from a string.
- * @param {string} str - Raw input text
- * @returns {number[]|null} Array of integers, or null if invalid
+ * Escapes unsafe characters for safe DOM string insertion.
+ * @param {string} str - String to escape
+ * @returns {string} Sanitized string
  */
-function parseInputList(str) {
-  if (!str || typeof str !== 'string') return null;
-  const tokens = str.trim().split(/[\s,]+/);
-  if (tokens.length === 0 || tokens[0] === '') return null;
-
-  const numbers = [];
-  for (const token of tokens) {
-    // Only allow whole integer digits (positive or zero)
-    if (!/^-?\d+$/.test(token)) {
-      return null;
-    }
-    const val = Number(token);
-    if (!Number.isInteger(val)) {
-      return null;
-    }
-    numbers.push(val);
-  }
-  return numbers;
+function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
- * Validates all input fields according to assignment requirements.
+ * Application state holding the list of processes for row-wise entry.
+ */
+let currentProcesses = [
+  { id: 'P1', task: 'Water-quality monitoring', arrival: 0, burst: 5 },
+  { id: 'P2', task: 'Waste-collection scheduling', arrival: 1, burst: 3 },
+  { id: 'P3', task: 'Traffic-pollution analysis', arrival: 2, burst: 4 },
+  { id: 'P4', task: 'Public energy-use monitoring', arrival: 3, burst: 2 }
+];
+
+/**
+ * Synchronizes the currentProcesses array from the active input elements in the DOM.
+ */
+function syncCurrentProcessesFromDOM() {
+  const tbody = document.getElementById('process-table-body');
+  if (!tbody) return;
+  const rows = tbody.querySelectorAll('tr');
+
+  const updated = [];
+  rows.forEach((row, idx) => {
+    const idInput = row.querySelector('.cell-input-id');
+    const taskInput = row.querySelector('.cell-input-task');
+    const arrInput = row.querySelector('.cell-input-arr');
+    const burstInput = row.querySelector('.cell-input-burst');
+
+    const id = idInput ? idInput.value.trim() : `P${idx + 1}`;
+    const task = taskInput ? taskInput.value.trim() : '';
+    const arrival = arrInput && arrInput.value !== '' ? Number(arrInput.value) : 0;
+    const burst = burstInput && burstInput.value !== '' ? Number(burstInput.value) : 1;
+
+    updated.push({
+      id: id || `P${idx + 1}`,
+      task,
+      arrival: Number.isInteger(arrival) && arrival >= 0 ? arrival : 0,
+      burst: Number.isInteger(burst) && burst >= 1 ? burst : 1
+    });
+  });
+
+  if (updated.length > 0) {
+    currentProcesses = updated;
+  }
+}
+
+/**
+ * Renders the process configuration table rows with editable inputs.
+ */
+function renderProcessTable() {
+  const tbody = document.getElementById('process-table-body');
+  const counter = document.getElementById('process-counter');
+  const addBtn = document.getElementById('add-process-btn');
+
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  currentProcesses.forEach((proc, index) => {
+    const tr = document.createElement('tr');
+    tr.dataset.index = index;
+
+    // Process ID (PID)
+    const tdId = document.createElement('td');
+    const inputId = document.createElement('input');
+    inputId.type = 'text';
+    inputId.className = 'cell-input cell-input-id';
+    inputId.value = proc.id;
+    inputId.dataset.field = 'id';
+    inputId.dataset.index = index;
+    inputId.setAttribute('aria-label', `Process ID for row ${index + 1}`);
+    tdId.appendChild(inputId);
+
+    // Task Description
+    const tdTask = document.createElement('td');
+    const inputTask = document.createElement('input');
+    inputTask.type = 'text';
+    inputTask.className = 'cell-input cell-input-task';
+    inputTask.value = proc.task || '';
+    inputTask.placeholder = 'e.g. Task name';
+    inputTask.dataset.field = 'task';
+    inputTask.dataset.index = index;
+    inputTask.setAttribute('aria-label', `Task Description for row ${index + 1}`);
+    tdTask.appendChild(inputTask);
+
+    // Arrival Time (AT)
+    const tdArr = document.createElement('td');
+    const inputArr = document.createElement('input');
+    inputArr.type = 'number';
+    inputArr.className = 'cell-input cell-input-num cell-input-arr';
+    inputArr.min = '0';
+    inputArr.step = '1';
+    inputArr.value = proc.arrival;
+    inputArr.dataset.field = 'arrival';
+    inputArr.dataset.index = index;
+    inputArr.setAttribute('aria-label', `Arrival time for process ${proc.id}`);
+    tdArr.appendChild(inputArr);
+
+    // Burst Time (BT)
+    const tdBurst = document.createElement('td');
+    const inputBurst = document.createElement('input');
+    inputBurst.type = 'number';
+    inputBurst.className = 'cell-input cell-input-num cell-input-burst';
+    inputBurst.min = '1';
+    inputBurst.step = '1';
+    inputBurst.value = proc.burst;
+    inputBurst.dataset.field = 'burst';
+    inputBurst.dataset.index = index;
+    inputBurst.setAttribute('aria-label', `Burst time for process ${proc.id}`);
+    tdBurst.appendChild(inputBurst);
+
+    // Action (Delete Row)
+    const tdAction = document.createElement('td');
+    tdAction.className = 'text-center';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-delete-row';
+    delBtn.dataset.index = index;
+    delBtn.title = currentProcesses.length <= 1 ? 'At least one process is required' : 'Delete this process';
+    delBtn.disabled = currentProcesses.length <= 1;
+    delBtn.setAttribute('aria-label', `Delete process ${proc.id}`);
+    delBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+    `;
+    tdAction.appendChild(delBtn);
+
+    tr.appendChild(tdId);
+    tr.appendChild(tdTask);
+    tr.appendChild(tdArr);
+    tr.appendChild(tdBurst);
+    tr.appendChild(tdAction);
+    tbody.appendChild(tr);
+  });
+
+  if (counter) {
+    counter.textContent = `${currentProcesses.length} / 10 processes`;
+  }
+
+  if (addBtn) {
+    addBtn.disabled = currentProcesses.length >= 10;
+  }
+}
+
+/**
+ * Validates all input fields from the process table and parameter form.
  * Shows friendly red error message under buttons if invalid.
  * @returns {object|null} Sanitized inputs or null if validation fails
  */
@@ -326,84 +460,127 @@ function validateInputs() {
   const errorEl = document.getElementById('error-message');
   const outputEl = document.getElementById('output-content');
 
-  function showError(msg) {
+  // Clear previous error highlighting
+  document.querySelectorAll('.cell-input.input-error, #scheduler-form input.input-error').forEach(el => {
+    el.classList.remove('input-error');
+  });
+
+  function showError(msg, focusEl) {
     errorEl.textContent = msg;
     errorEl.style.display = 'block';
-    outputEl.innerHTML = ''; // Clear old results when invalid
+    outputEl.innerHTML = '';
+    if (focusEl) {
+      focusEl.classList.add('input-error');
+      if (typeof focusEl.focus === 'function') {
+        focusEl.focus();
+      }
+    }
     return null;
   }
 
-  const arrivalText = document.getElementById('arrival-input').value;
-  const burstText = document.getElementById('burst-input').value;
-  const quantumText = document.getElementById('quantum-input').value;
-  const overheadText = document.getElementById('overhead-input').value;
-  const compareText = document.getElementById('compare-quantum-input').value.trim();
+  const tbody = document.getElementById('process-table-body');
+  if (!tbody) return null;
+  const rows = tbody.querySelectorAll('tr');
 
-  // Validate Arrival Times
-  const arrivals = parseInputList(arrivalText);
-  if (!arrivals) {
-    return showError('Arrival Times must be valid whole numbers separated by spaces or commas.');
-  }
-  for (const arr of arrivals) {
-    if (arr < 0) {
-      return showError('Arrival times must be integers greater than or equal to 0.');
-    }
+  if (rows.length === 0) {
+    return showError('Please add at least one process.');
   }
 
-  if (arrivals.length < 1 || arrivals.length > 10) {
+  if (rows.length > 10) {
     return showError('Please provide between 1 and 10 processes.');
   }
 
-  // Validate Burst Times
-  const bursts = parseInputList(burstText);
-  if (!bursts) {
-    return showError('Burst Times must be valid whole numbers separated by spaces or commas.');
-  }
-  for (const b of bursts) {
-    if (b < 1) {
-      return showError('Burst times must be positive integers (greater than or equal to 1).');
-    }
-  }
+  const arrivals = [];
+  const bursts = [];
+  const names = [];
+  const tasks = [];
+  const seenIds = new Set();
 
-  if (arrivals.length !== bursts.length) {
-    return showError(`Number of arrival times (${arrivals.length}) must equal number of burst times (${bursts.length}).`);
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const idInput = row.querySelector('.cell-input-id');
+    const taskInput = row.querySelector('.cell-input-task');
+    const arrInput = row.querySelector('.cell-input-arr');
+    const burstInput = row.querySelector('.cell-input-burst');
+
+    let pid = idInput ? idInput.value.trim() : '';
+    if (!pid) {
+      pid = 'P' + (i + 1);
+      if (idInput) idInput.value = pid;
+    }
+
+    if (seenIds.has(pid)) {
+      return showError(`Duplicate Process ID "${pid}". Each process must have a unique identifier.`, idInput);
+    }
+    seenIds.add(pid);
+
+    const task = taskInput ? taskInput.value.trim() : '';
+
+    const arrVal = arrInput ? arrInput.value.trim() : '';
+    if (!/^\d+$/.test(arrVal)) {
+      return showError(`Arrival time for process ${pid} must be an integer greater than or equal to 0.`, arrInput);
+    }
+    const arrNum = Number(arrVal);
+    if (arrNum < 0) {
+      return showError(`Arrival time for process ${pid} must be greater than or equal to 0.`, arrInput);
+    }
+
+    const burstVal = burstInput ? burstInput.value.trim() : '';
+    if (!/^\d+$/.test(burstVal)) {
+      return showError(`Burst time for process ${pid} must be a positive integer (greater than or equal to 1).`, burstInput);
+    }
+    const burstNum = Number(burstVal);
+    if (burstNum < 1) {
+      return showError(`Burst time for process ${pid} must be an integer greater than or equal to 1.`, burstInput);
+    }
+
+    names.push(pid);
+    tasks.push(task);
+    arrivals.push(arrNum);
+    bursts.push(burstNum);
   }
 
   // Validate Time Quantum
-  if (!/^\d+$/.test(quantumText.trim())) {
-    return showError('Time Quantum must be a positive integer (greater than or equal to 1).');
+  const quantumInput = document.getElementById('quantum-input');
+  const quantumText = quantumInput.value.trim();
+  if (!/^\d+$/.test(quantumText)) {
+    return showError('Time Quantum must be a positive integer (greater than or equal to 1).', quantumInput);
   }
   const quantum = Number(quantumText);
   if (quantum < 1) {
-    return showError('Time Quantum must be an integer greater than or equal to 1.');
+    return showError('Time Quantum must be an integer greater than or equal to 1.', quantumInput);
   }
 
   // Validate Context Switch Overhead
-  if (!/^\d+$/.test(overheadText.trim())) {
-    return showError('Context Switch Overhead must be an integer greater than or equal to 0.');
+  const overheadInput = document.getElementById('overhead-input');
+  const overheadText = overheadInput.value.trim();
+  if (!/^\d+$/.test(overheadText)) {
+    return showError('Context Switch Overhead must be an integer greater than or equal to 0.', overheadInput);
   }
   const overhead = Number(overheadText);
   if (overhead < 0) {
-    return showError('Context Switch Overhead must be greater than or equal to 0.');
+    return showError('Context Switch Overhead must be greater than or equal to 0.', overheadInput);
   }
 
   // Validate Compare Quantum (Optional)
+  const compareInput = document.getElementById('compare-quantum-input');
+  const compareText = compareInput.value.trim();
   let compareQuantum = null;
   if (compareText !== '') {
     if (!/^\d+$/.test(compareText)) {
-      return showError('Compare Time Quantum must be a positive integer (greater than or equal to 1).');
+      return showError('Compare Time Quantum must be a positive integer (greater than or equal to 1).', compareInput);
     }
     compareQuantum = Number(compareText);
     if (compareQuantum < 1) {
-      return showError('Compare Time Quantum must be greater than or equal to 1.');
+      return showError('Compare Time Quantum must be greater than or equal to 1.', compareInput);
     }
   }
 
-  // All valid: clear error
+  // All valid: clear error alert
   errorEl.style.display = 'none';
   errorEl.textContent = '';
 
-  return { arrivals, bursts, quantum, overhead, compareQuantum };
+  return { arrivals, bursts, names, tasks, quantum, overhead, compareQuantum };
 }
 
 /**
@@ -515,8 +692,9 @@ function renderResultsTable(jobs, summary) {
     sumRt += job.response;
 
     const row = document.createElement('tr');
+    const taskSub = job.task ? `<div class="job-task-desc">${escapeHtml(job.task)}</div>` : '';
     row.innerHTML = `
-      <td><strong>${job.name}</strong></td>
+      <td><strong>${escapeHtml(job.name)}</strong>${taskSub}</td>
       <td>${job.arrival}</td>
       <td>${job.burst}</td>
       <td>${job.completion}</td>
@@ -773,11 +951,11 @@ function handleSolve() {
   const outputEl = document.getElementById('output-content');
   outputEl.innerHTML = '';
 
-  const resMain = roundRobin(inputs.arrivals, inputs.bursts, inputs.quantum, inputs.overhead);
+  const resMain = roundRobin(inputs.arrivals, inputs.bursts, inputs.quantum, inputs.overhead, inputs.names, inputs.tasks);
 
   // If comparison quantum is specified, render both blocks with explicit headings
   if (inputs.compareQuantum !== null) {
-    const resCompare = roundRobin(inputs.arrivals, inputs.bursts, inputs.compareQuantum, inputs.overhead);
+    const resCompare = roundRobin(inputs.arrivals, inputs.bursts, inputs.compareQuantum, inputs.overhead, inputs.names, inputs.tasks);
 
     outputEl.appendChild(buildSimulationBlock(resMain, inputs.quantum, inputs.overhead, `Time Quantum = ${inputs.quantum}`));
     outputEl.appendChild(buildSimulationBlock(resCompare, inputs.compareQuantum, inputs.overhead, `Time Quantum = ${inputs.compareQuantum}`));
@@ -789,54 +967,113 @@ function handleSolve() {
 }
 
 /**
+ * Appends a new process row to the input table and updates calculations.
+ */
+function handleAddProcess() {
+  if (currentProcesses.length >= 10) return;
+
+  syncCurrentProcessesFromDOM();
+
+  const nextIndex = currentProcesses.length + 1;
+  const lastProc = currentProcesses[currentProcesses.length - 1];
+  const nextArrival = lastProc ? lastProc.arrival + 1 : 0;
+
+  currentProcesses.push({
+    id: `P${nextIndex}`,
+    task: '',
+    arrival: nextArrival,
+    burst: 2
+  });
+
+  hideScenarioNote();
+  renderProcessTable();
+  handleSolve();
+
+  // Focus burst time of the newly created row
+  const rows = document.querySelectorAll('#process-table-body tr');
+  if (rows.length > 0) {
+    const lastRow = rows[rows.length - 1];
+    const burstInput = lastRow.querySelector('.cell-input-burst');
+    if (burstInput) burstInput.focus();
+  }
+}
+
+/**
+ * Deletes a process row from the input table and re-solves.
+ * @param {number} index - Index of process to delete
+ */
+function handleDeleteProcess(index) {
+  if (currentProcesses.length <= 1) return;
+
+  syncCurrentProcessesFromDOM();
+  currentProcesses.splice(index, 1);
+  hideScenarioNote();
+  renderProcessTable();
+  handleSolve();
+}
+
+/**
+ * Hides the scenario preset note when user modifies workloads.
+ */
+function hideScenarioNote() {
+  const scenarioNote = document.getElementById('scenario-note');
+  if (scenarioNote) {
+    scenarioNote.style.display = 'none';
+  }
+}
+
+/**
  * Loads one of the preset university assignment scenarios and runs Solve.
  * Shows scenario note inside input card.
  * @param {number} actNum - Activity number (1 or 2)
  */
 function loadPreset(actNum) {
-  const arrivalInput = document.getElementById('arrival-input');
-  const burstInput = document.getElementById('burst-input');
   const quantumInput = document.getElementById('quantum-input');
   const overheadInput = document.getElementById('overhead-input');
   const compareInput = document.getElementById('compare-quantum-input');
   const scenarioNote = document.getElementById('scenario-note');
 
   if (actNum === 1) {
-    arrivalInput.value = '0 1 2 3';
-    burstInput.value = '5 3 4 2';
+    currentProcesses = [
+      { id: 'P1', task: 'Water-quality monitoring', arrival: 0, burst: 5 },
+      { id: 'P2', task: 'Waste-collection scheduling', arrival: 1, burst: 3 },
+      { id: 'P3', task: 'Traffic-pollution analysis', arrival: 2, burst: 4 },
+      { id: 'P4', task: 'Public energy-use monitoring', arrival: 3, burst: 2 }
+    ];
     quantumInput.value = '2';
     overheadInput.value = '0';
     compareInput.value = '3';
 
     scenarioNote.innerHTML = `
-      <strong>Activity 1 (SDG 6, 11, 12 - Municipal Services):</strong>
-      <ul>
-        <li><strong>P1:</strong> Water-quality monitoring</li>
-        <li><strong>P2:</strong> Waste-collection scheduling</li>
-        <li><strong>P3:</strong> Traffic-pollution analysis</li>
-        <li><strong>P4:</strong> Public energy-use monitoring</li>
-      </ul>
+      <strong>Activity 1 (Smart Municipal Control Centre):</strong>
+      <p style="margin-top: 4px; font-size: 0.8rem; color: #4b5563;">
+        SDG 6 Clean Water, SDG 11 Sustainable Cities, SDG 12 Responsible Consumption.<br>
+        Zero context-switch overhead (CS = 0 ms). Evaluates time quantum q = 2 vs q = 3.
+      </p>
     `;
     scenarioNote.style.display = 'block';
   } else if (actNum === 2) {
-    arrivalInput.value = '0 1 2 3';
-    burstInput.value = '5 4 3 2';
+    currentProcesses = [
+      { id: 'P1', task: 'Flood-warning analysis', arrival: 0, burst: 5 },
+      { id: 'P2', task: 'Air-quality alert generation', arrival: 1, burst: 4 },
+      { id: 'P3', task: 'Emergency evacuation route update', arrival: 2, burst: 3 },
+      { id: 'P4', task: 'Renewable-grid status monitoring', arrival: 3, burst: 2 }
+    ];
     quantumInput.value = '2';
     overheadInput.value = '1';
     compareInput.value = '4';
 
     scenarioNote.innerHTML = `
-      <strong>Activity 2 (SDG 11, 13 - Climate Emergency):</strong>
-      <ul>
-        <li><strong>P1:</strong> Flood-warning analysis</li>
-        <li><strong>P2:</strong> Air-quality alert generation</li>
-        <li><strong>P3:</strong> Emergency evacuation route update</li>
-        <li><strong>P4:</strong> Renewable-grid status monitoring</li>
-      </ul>
+      <strong>Activity 2 (Climate Emergency Response Centre):</strong>
+      <p style="margin-top: 4px; font-size: 0.8rem; color: #4b5563;">
+        SDG 11 Sustainable Cities, SDG 13 Climate Action.<br>
+        Context-switch overhead active (CS = 1 ms). Evaluates time quantum q = 2 vs q = 4.
+      </p>
     `;
     scenarioNote.style.display = 'block';
   }
 
+  renderProcessTable();
   handleSolve();
 }
 
@@ -850,30 +1087,47 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 2. Attach button click handlers
   document.getElementById('solve-btn').addEventListener('click', handleSolve);
+  document.getElementById('add-process-btn').addEventListener('click', handleAddProcess);
   document.getElementById('btn-activity-1').addEventListener('click', () => loadPreset(1));
   document.getElementById('btn-activity-2').addEventListener('click', () => loadPreset(2));
 
-  // 3. Hide scenario note as soon as user edits arrival or burst inputs
-  const scenarioNote = document.getElementById('scenario-note');
-  function hideScenarioNote() {
-    if (scenarioNote) {
-      scenarioNote.style.display = 'none';
-    }
-  }
-  document.getElementById('arrival-input').addEventListener('input', hideScenarioNote);
-  document.getElementById('burst-input').addEventListener('input', hideScenarioNote);
+  // 3. Process table event delegation (delete button clicks and cell input changes)
+  const tableBody = document.getElementById('process-table-body');
+  if (tableBody) {
+    tableBody.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('.btn-delete-row');
+      if (delBtn && !delBtn.disabled) {
+        const idx = Number(delBtn.dataset.index);
+        handleDeleteProcess(idx);
+      }
+    });
 
-  // 4. Trigger Solve on Enter key in any input field
-  const allInputs = document.querySelectorAll('#scheduler-form input');
-  allInputs.forEach(input => {
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
+    tableBody.addEventListener('input', (e) => {
+      const target = e.target;
+      if (target && target.classList.contains('cell-input')) {
+        target.classList.remove('input-error');
+        hideScenarioNote();
+        syncCurrentProcessesFromDOM();
+      }
+    });
+  }
+
+  // 4. Hide scenario note when quantum or overhead inputs change
+  document.getElementById('quantum-input').addEventListener('input', hideScenarioNote);
+  document.getElementById('overhead-input').addEventListener('input', hideScenarioNote);
+  document.getElementById('compare-quantum-input').addEventListener('input', hideScenarioNote);
+
+  // 5. Trigger Solve on Enter key in any input field
+  const schedulerForm = document.getElementById('scheduler-form');
+  if (schedulerForm) {
+    schedulerForm.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
         e.preventDefault();
         handleSolve();
       }
     });
-  });
+  }
 
-  // 5. Load Activity 1 on startup to show a live working simulation
+  // 6. Load Activity 1 on startup to show a live working simulation
   loadPreset(1);
 });
