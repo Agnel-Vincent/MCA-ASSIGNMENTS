@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seekpath – FCFS and SSTF disk scheduling</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;700;800&family=Hanken+Grotesk:wght@400;500;700&display=swap">
+<style>
+:root{--paper:#E8EDF1;--ink:#0E1A2B;--mute:#5B687A;--tint:#D8E0E8;--band:#DDE5EC;--fcfs:#2447F5;--sstf:#D4206B;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0D1626;--ink:#E4EBF5;--mute:#8F9DB2;--tint:#1A2740;--band:#121E32;--fcfs:#7894FF;--sstf:#FF6FA8;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0D1626;--ink:#E4EBF5;--mute:#8F9DB2;--tint:#1A2740;--band:#121E32;--fcfs:#7894FF;--sstf:#FF6FA8;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.5 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;--ac:var(--sstf)}
+button,input{font:inherit;color:inherit}
+.cut{clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px))}
+
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 28px;padding:26px 32px 4px}
+.brand{display:flex;align-items:center;gap:12px}
+h1{margin:0;font:800 30px/1 "Bricolage Grotesque","Hanken Grotesk",sans-serif;letter-spacing:-.02em}
+.top p{margin:0;color:var(--mute)}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:44px;padding:14px 32px 10px}
+.cap{margin:0 0 10px;max-width:70ch;color:var(--mute)}
+.scroll{overflow-x:auto}
+#chart{display:block;width:100%;min-width:720px;height:auto;font-family:"Hanken Grotesk",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+#chart text{font-size:12px;fill:var(--ink)}
+#chart .mu{fill:var(--mute)}
+#chart .h{paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round}
+.band{fill:var(--band)}
+.tk{stroke:var(--mute);stroke-width:1}
+.pin{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
+.pin.s{fill:var(--c);stroke:var(--c)}
+.ghost{fill:none;stroke:var(--o);stroke-width:2;stroke-dasharray:5 5;opacity:.55}
+.seg{fill:none;stroke:var(--c);stroke-width:2.6}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:dr .8s ease-out forwards}
+@keyframes dr{to{stroke-dashoffset:0}}
+.nd{fill:var(--c)}
+.nd0{fill:var(--paper);stroke:var(--c);stroke-width:2}
+.cand{fill:var(--paper);stroke:var(--mute);stroke-width:1.5}
+.cand.hi{stroke:var(--c);stroke-width:2.5}
+#chart .cd{fill:var(--mute)}
+#chart .cd.hi{fill:var(--c);font-weight:700}
+.hop{stroke:var(--c);stroke-width:1.5;stroke-dasharray:2 4}
+.needle{stroke:var(--c);stroke-width:1.5;stroke-dasharray:3 4;opacity:.6}
+.ptr{fill:var(--c)}
+#chart .dl{font-weight:500}
+#chart .nv{font-weight:700}
+.ov{display:inline-flex;gap:8px;align-items:center;margin-top:8px;color:var(--mute);cursor:pointer}
+.ov input{accent-color:var(--ink);width:16px;height:16px;margin:0}
+
+.side{display:flex;flex-direction:column;gap:6px}
+.tot{all:unset;display:grid;gap:2px;cursor:pointer;padding:6px 0 14px;color:var(--mute);--c:var(--fcfs)}
+#t-sstf{--c:var(--sstf)}
+.tot:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+.tot.on{color:var(--ink)}
+.nm{display:flex;align-items:center;gap:12px;font-weight:700;font-size:16px}
+.dia{width:11px;height:11px;background:var(--c);transform:rotate(45deg) scale(.7);opacity:.45;transition:.25s}
+.on .dia{opacity:1;transform:rotate(45deg) scale(1)}
+.ds{font-size:13px;margin-left:23px}
+.n{font:800 clamp(52px,6vw,80px)/1 "Bricolage Grotesque","Hanken Grotesk",sans-serif;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--mute);margin-top:4px}
+.on .n{color:var(--c)}
+.sub{font-size:13px}
+.bar{display:block;height:10px;margin-top:8px;background:var(--tint)}
+.bar i{display:block;height:100%;background:var(--c);clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:width .5s;opacity:.45}
+.on .bar i{opacity:1}
+#verdict{margin:4px 0 0;font-weight:700;font-size:16px}
+#now{margin:10px 0 0;line-height:1.55}
+.hl{color:var(--ac);font-weight:700}
+.th{margin:16px 0 4px;font-size:12px;color:var(--mute)}
+#tape{list-style:none;margin:0;padding:0;font-size:13px;font-variant-numeric:tabular-nums}
+#tape li{display:grid;grid-template-columns:26px 1fr auto 48px;gap:8px;padding:6px 8px;align-items:baseline}
+#tape li:nth-child(odd){background:var(--band)}
+#tape b{color:var(--mute);font-weight:500}
+#tape span{font-weight:700}
+#tape small{color:var(--mute);font-weight:400;margin-left:6px}
+#tape em{font-style:normal;color:var(--ac);font-weight:700}
+#tape u{text-decoration:none;text-align:right;font-weight:700}
+
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 44px;padding:30px 32px 40px;max-width:1200px}
+.notes h2{margin:0 0 4px;font:700 17px/1.2 "Bricolage Grotesque","Hanken Grotesk",sans-serif}
+.notes p{margin:0;color:var(--mute);max-width:46ch}
+
+.dock{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;align-items:end;gap:14px 20px;padding:14px 32px 16px;background:var(--tint)}
+.f{display:grid;gap:4px}
+.f span{font-size:12px;color:var(--mute);font-weight:500}
+.f input{background:var(--paper);border:0;padding:10px 12px;font-size:16px;font-weight:500;min-width:0;font-variant-numeric:tabular-nums}
+.f input:focus{outline:0;box-shadow:inset 0 0 0 2px var(--ink)}
+.f.q{flex:1 1 280px}.f.h{width:84px}.f.m{width:104px}
+.deck{display:flex;gap:4px}
+.deck button{background:var(--paper);border:0;padding:11px 18px;cursor:pointer;font-weight:700}
+.deck button:hover{background:var(--ink);color:var(--paper)}
+.deck .go{background:var(--ink);color:var(--paper);min-width:84px}
+.deck .go:hover{background:var(--sstf);color:#fff}
+.deck button:focus-visible,.lnk:focus-visible{outline:0;box-shadow:inset 0 0 0 2px var(--sstf)}
+.lnk{background:none;border:0;padding:11px 4px;cursor:pointer;font-weight:500;text-decoration:underline;text-underline-offset:4px}
+#err{flex-basis:100%;margin:0;color:var(--sstf);font-weight:500}
+#err:empty{display:none}
+
+@media (max-width:900px){.stage{grid-template-columns:1fr;gap:20px;padding:14px 18px}.top,.notes,.dock{padding-left:18px;padding-right:18px}.notes{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.draw{animation:none;stroke-dashoffset:0}.bar i,.dia{transition:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><polyline points="4,3 25,10 6,17 26,27" fill="none" stroke="var(--sstf)" stroke-width="3"/></svg>
+    <h1>Seekpath</h1>
+  </div>
+  <p>One queue of disk requests, served two ways.</p>
+</header>
+
+<main class="stage">
+  <section class="plot">
+    <p class="cap">Across is the cylinder number. Down is time, one row per request served. Each slanted line is one seek, with its length printed beside it.</p>
+    <div class="scroll"><svg id="chart" role="img" aria-label="Disk head path over time"></svg></div>
+    <label class="ov"><input type="checkbox" id="ov" checked> Show the other algorithm’s route faintly</label>
+  </section>
+
+  <aside class="side">
+    <button class="tot" id="t-fcfs"><span class="nm"><i class="dia"></i>FCFS</span><span class="ds">first come, first served</span><span class="n">0</span><span class="sub"></span><span class="bar"><i></i></span></button>
+    <button class="tot" id="t-sstf"><span class="nm"><i class="dia"></i>SSTF</span><span class="ds">shortest seek time first</span><span class="n">0</span><span class="sub"></span><span class="bar"><i></i></span></button>
+    <p id="verdict"></p>
+    <p id="now"></p>
+    <p class="th">Step, seek to, distance moved, total so far</p>
+    <ol id="tape"></ol>
+  </aside>
+</main>
+
+<section class="notes">
+  <div><h2>FCFS</h2><p>Serves requests in the order they arrived. No request is skipped, so none waits forever, but the head can swing across the disk and back again and again.</p></div>
+  <div><h2>SSTF</h2><p>From wherever the head is, serve the closest waiting request next. Total travel is usually far shorter. The cost is starvation: a distant request can wait indefinitely while nearer ones keep arriving.</p></div>
+  <div><h2>Total seek distance</h2><p>The sum of |next − current| over every move, starting from the head’s first position. Fewer cylinders crossed means less time spent moving the arm.</p></div>
+</section>
+
+<div class="dock">
+  <label class="f q"><span>Request queue, in arrival order</span><input id="queue" class="cut" value="98, 183, 37, 122, 14, 124, 65, 67" autocomplete="off" spellcheck="false"></label>
+  <label class="f h"><span>Head starts at</span><input id="head" class="cut" value="53" inputmode="numeric"></label>
+  <label class="f m"><span>Last cylinder</span><input id="max" class="cut" value="199" inputmode="numeric"></label>
+  <div class="deck">
+    <button id="back" class="cut" title="Back (left arrow)">Back</button>
+    <button id="step" class="cut" title="Step (right arrow or space)">Step</button>
+    <button id="run" class="cut go">Run</button>
+    <button id="reset" class="cut">Reset</button>
+  </div>
+  <button class="lnk" id="shuffle">Shuffle a new queue</button>
+  <p id="err" role="alert"></p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const S = {algo:'sstf', k:0, anim:false, timer:null, reqs:[], head:53, max:199, route:{}, tot:{}};
+
+function parse(){
+  const m = +$('#max').value, h = +$('#head').value;
+  const reqs = $('#queue').value.split(/[\s,;]+/).filter(Boolean).map(Number);
+  if(!Number.isInteger(m) || m < 10 || m > 999) return {err:'Last cylinder must be a whole number from 10 to 999.'};
+  if(!Number.isInteger(h) || h < 0 || h > m) return {err:'The head must start between 0 and ' + m + '.'};
+  if(reqs.length < 1 || reqs.length > 14) return {err:'Enter between 1 and 14 requests.'};
+  if(reqs.some(v => !Number.isInteger(v) || v < 0 || v > m)) return {err:'Every request must be a whole number from 0 to ' + m + '.'};
+  return {reqs, head:h, max:m};
+}
+function route(algo, head, reqs){
+  if(algo === 'fcfs') return reqs.slice();
+  const pend = reqs.slice(), out = []; let cur = head;
+  while(pend.length){
+    let b = 0;
+    for(let j = 1; j < pend.length; j++) if(Math.abs(pend[j]-cur) < Math.abs(pend[b]-cur)) b = j;
+    cur = pend.splice(b, 1)[0]; out.push(cur);
+  }
+  return out;
+}
+const total = (head, order) => order.reduce((s, v, i) => s + Math.abs(v - (i ? order[i-1] : head)), 0);
+
+function recompute(){
+  const p = parse();
+  if(p.err){ $('#err').textContent = p.err; return; }
+  $('#err').textContent = '';
+  stop();
+  Object.assign(S, {reqs:p.reqs, head:p.head, max:p.max, k:0, anim:false});
+  for(const a of ['fcfs','sstf']){ S.route[a] = route(a, p.head, p.reqs); S.tot[a] = total(p.head, S.route[a]); }
+  draw();
+}
+function draw(){
+  document.body.style.setProperty('--ac', S.algo === 'fcfs' ? 'var(--fcfs)' : 'var(--sstf)');
+  renderTotals(); renderChart(); renderTape();
+}
+
+function renderTotals(){
+  const n = S.reqs.length, mx = Math.max(S.tot.fcfs, S.tot.sstf) || 1;
+  for(const a of ['fcfs','sstf']){
+    const b = $('#t-' + a);
+    b.classList.toggle('on', S.algo === a);
+    b.querySelector('.n').textContent = S.tot[a];
+    b.querySelector('.bar i').style.width = (S.tot[a] / mx * 100) + '%';
+    let sub = 'cylinders crossed, average ' + (S.tot[a] / n).toFixed(1) + ' per request';
+    if(S.algo === a && S.k > 0) sub += '. So far: ' + total(S.head, S.route[a].slice(0, S.k));
+    b.querySelector('.sub').textContent = sub;
+  }
+  const f = S.tot.fcfs, s = S.tot.sstf;
+  $('#verdict').textContent = f === s ? 'Both cover the same distance on this queue. Try shuffling.'
+    : s < f ? 'SSTF moves the head ' + (f - s) + ' cylinders less, ' + Math.round((f - s) / f * 100) + '% shorter.'
+    : 'FCFS happens to win here by ' + (s - f) + ' cylinders. Uncommon, but possible.';
+}
+
+const dia = (x, y, r, cls) => `<polygon class="${cls}" points="${x},${y-r} ${x+r},${y} ${x},${y+r} ${x-r},${y}"/>`;
+
+function renderChart(){
+  const {head, max, reqs, k, algo} = S, n = reqs.length, other = algo === 'fcfs' ? 'sstf' : 'fcfs';
+  const W = 1000, L = 70, R = 26, pinY = 62, top = 112, rh = 54, H = top + n * rh + 36;
+  const X = v => L + v / max * (W - L - R), Y = i => top + i * rh;
+  const path = [head, ...S.route[algo]], opath = [head, ...S.route[other]];
+  const minor = max <= 100 ? 5 : max <= 300 ? 10 : 50, major = minor * 5;
+  let s = '';
+  for(let v = 0, b = 0; v < max; v += minor, b++){
+    if(b % 2 === 0) s += `<rect class="band" x="${X(v)}" y="${top-26}" width="${X(Math.min(v+minor, max)) - X(v)}" height="${H-top+16}"/>`;
+  }
+  for(let v = 0; v <= max; v += minor){
+    const mj = v % major === 0, x = X(v);
+    s += `<line class="tk" x1="${x}" x2="${x}" y1="16" y2="${mj?30:24}"/>`;
+    if(mj) s += `<text class="mu" x="${x}" y="11" text-anchor="middle">${v}</text>`;
+  }
+  if(max % major >= minor * 2) s += `<text class="mu" x="${X(max)}" y="11" text-anchor="end">${max}</text>`;
+  s += `<text class="mu" x="0" y="11">cylinder</text><text class="mu" x="0" y="${pinY+4}">queue</text>`;
+
+  const cnt = {}; S.route[algo].slice(0, k).forEach(v => cnt[v] = (cnt[v] || 0) + 1);
+  reqs.forEach(v => { const done = cnt[v] > 0; if(done) cnt[v]--; s += dia(X(v), pinY, 5, 'pin' + (done ? ' s' : '')); });
+
+  for(let i = 0; i <= n; i++) s += `<text class="mu" x="0" y="${Y(i)+4}">${i === 0 ? 'start' : i}</text>`;
+
+  if($('#ov').checked) s += `<polyline class="ghost" points="${opath.map((v, i) => X(v) + ',' + Y(i)).join(' ')}"/>`;
+
+  for(let i = 1; i <= k; i++){
+    const x1 = X(path[i-1]), y1 = Y(i-1), x2 = X(path[i]), y2 = Y(i), d = Math.abs(path[i] - path[i-1]);
+    s += `<path class="seg${i === k && S.anim ? ' draw' : ''}" pathLength="1" d="M${x1} ${y1}L${x2} ${y2}"/>`;
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, right = x2 >= x1;
+    s += `<text class="dl h" x="${mx + (right ? 9 : -9)}" y="${my - 4}" text-anchor="${right ? 'start' : 'end'}">${d}</text>`;
+  }
+
+  if(k < n){
+    const cur = path[k], pend = S.route[algo].slice(k), y = Y(k), seen = new Set();
+    s += `<line class="hop" x1="${X(cur)}" x2="${X(pend[0])}" y1="${y}" y2="${y}"/>`;
+    pend.forEach((v, j) => {
+      if(seen.has(v)) return; seen.add(v);
+      const hi = j === 0;
+      s += dia(X(v), y, hi ? 6 : 4, 'cand' + (hi ? ' hi' : ''));
+      s += `<text class="cd h${hi ? ' hi' : ''}" x="${X(v)}" y="${y + 23}" text-anchor="middle">${Math.abs(v - cur)}</text>`;
+    });
+  }
+
+  for(let i = 0; i <= k; i++){
+    const x = X(path[i]), y = Y(i), left = i > 0 && path[i] < path[i-1];
+    s += dia(x, y, 6, i === 0 ? 'nd0' : 'nd');
+    s += `<text class="nv h" x="${x + (left ? -11 : 11)}" y="${y + 4}" text-anchor="${left ? 'end' : 'start'}">${path[i]}</text>`;
+  }
+
+  const hx = X(path[k]);
+  s += `<line class="needle" x1="${hx}" x2="${hx}" y1="46" y2="${Y(k)}"/><polygon class="ptr" points="${hx},46 ${hx-6},34 ${hx+6},34"/>`;
+
+  const svg = $('#chart');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.style.cssText = `--c:var(--${algo});--o:var(--${other})`;
+  svg.innerHTML = s;
+}
+
+const pad = n => String(n);
+function renderTape(){
+  const {algo, head, k} = S, order = S.route[algo], n = order.length;
+  let h = '', sum = 0;
+  order.slice(0, k).forEach((v, i) => {
+    const from = i ? order[i-1] : head, d = Math.abs(v - from); sum += d;
+    h += `<li><b>${pad(i+1)}</b><span>${v}<small>from ${from}</small></span><em>+${d}</em><u>${sum}</u></li>`;
+  });
+  $('#tape').innerHTML = h;
+  let t;
+  if(k >= n) t = `All ${n} requests served. The head crossed <b class="hl">${S.tot[algo]}</b> cylinders.`;
+  else {
+    const cur = k ? order[k-1] : head, pend = order.slice(k), nxt = pend[0], d = Math.abs(nxt - cur);
+    if(algo === 'fcfs'){
+      const near = pend.reduce((b, v) => Math.abs(v - cur) < Math.abs(b - cur) ? v : b, pend[0]);
+      t = `Head is at ${cur}. First in line is <b class="hl">${nxt}</b>, ${d} away.` +
+          (near !== nxt ? ` FCFS ignores that ${near} is only ${Math.abs(near - cur)} away.` : '');
+    } else {
+      const list = [...new Set(pend)].sort((a, b) => Math.abs(a - cur) - Math.abs(b - cur)).slice(0, 4).map(v => `${v} (${Math.abs(v - cur)})`).join(', ');
+      t = `Head is at ${cur}. The closest waiting request is <b class="hl">${nxt}</b>, ${d} away. Nearest few: ${list}.`;
+    }
+    if(k === 0) t += ' Press Step to move the head.';
+  }
+  $('#now').innerHTML = t;
+}
+
+function stop(){ clearInterval(S.timer); S.timer = null; $('#run').textContent = 'Run'; }
+function go(d){ stop(); S.k = Math.max(0, Math.min(S.reqs.length, S.k + d)); S.anim = d > 0; draw(); }
+function tick(){
+  if(S.k >= S.reqs.length){ stop(); return; }
+  S.k++; S.anim = true; draw();
+  if(S.k >= S.reqs.length) stop();
+}
+
+$('#step').onclick = () => go(1);
+$('#back').onclick = () => go(-1);
+$('#reset').onclick = () => { stop(); S.k = 0; S.anim = false; draw(); };
+$('#run').onclick = () => {
+  if(S.timer){ stop(); return; }
+  if(S.k >= S.reqs.length) S.k = 0;
+  $('#run').textContent = 'Pause';
+  tick();
+  if(S.k < S.reqs.length) S.timer = setInterval(tick, 1000); else stop();
+};
+$('#shuffle').onclick = () => {
+  const m = +$('#max').value; if(!(m >= 10 && m <= 999)) return;
+  const set = new Set(); while(set.size < 8) set.add(Math.floor(Math.random() * (m + 1)));
+  $('#queue').value = [...set].join(', ');
+  $('#head').value = Math.floor(Math.random() * (m + 1));
+  recompute();
+};
+for(const a of ['fcfs','sstf']) $('#t-' + a).onclick = () => { S.algo = a; S.anim = false; draw(); };
+$('#ov').onchange = draw;
+['#queue','#head','#max'].forEach(id => $(id).addEventListener('input', recompute));
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  if(e.key === 'ArrowRight' || e.key === ' '){ e.preventDefault(); go(1); }
+  if(e.key === 'ArrowLeft'){ e.preventDefault(); go(-1); }
+});
+recompute();
+</script>
+</body>
+</html>
